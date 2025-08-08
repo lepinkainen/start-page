@@ -1,0 +1,12 @@
+services:
+  smart-start:
+    image: denoland/deno:debian
+    platform: linux/amd64
+    container_name: smart-start
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["deno", "run", "-A", "server.ts"]
+    restart: unless-stopped

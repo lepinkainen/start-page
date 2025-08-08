@@ -2,10 +2,10 @@
 /* global self */
 
 // 1) Load ORT UMD first so a global `ort` exists
-importScripts("./vendor/onnx-1.18/ort.min.js");
+importScripts("https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js");
 
-// Point ORT to local non-threaded wasm blobs
-self.ort.env.wasm.wasmPaths = "./vendor/onnx-1.18/";
+// Point ORT to CDN non-threaded wasm blobs
+self.ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
 self.ort.env.wasm.numThreads = 1; // single-thread avoids COOP/COEP
 
 // 2) Load Transformers UMD from CDN (stable known-good)
@@ -15,7 +15,7 @@ importScripts(
 
 const { pipeline, env } = self.transformers;
 // Mirror the WASM settings into transformers' env (it proxies to ORT anyway)
-env.backends.onnx.wasm.wasmPaths = "./vendor/onnx-1.18/";
+env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
 env.backends.onnx.wasm.numThreads = 1;
 
 const DEVICE = "wasm";
