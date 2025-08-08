@@ -20,3 +20,7 @@ curl -L "$BASE_URL/tokenizer_config.json" -o "$DEST_DIR/tokenizer_config.json"
 curl -L "$BASE_URL/onnx/model_quantized.onnx" -o "$DEST_DIR/onnx/model_quantized.onnx"
 
 echo "Download complete. Files saved to $DEST_DIR"
+
+echo "Building worker bundle..."
+
+npx esbuild worker.js --bundle --format=esm --outfile=worker.bundle.js --platform=browser

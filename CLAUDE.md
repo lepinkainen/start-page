@@ -5,7 +5,7 @@ A Deno-based web application that intelligently routes search queries to appropr
 ## Architecture Overview
 
 **Purpose**: Perform ML inference in the browser using main thread ML with robust heuristic fallback
-**Frontend**: Single-page application (`index.html`) with vanilla JavaScript
+**Frontend**: Single-page application (`index.html`) with modular vanilla JavaScript 
 **Backend**: Deno server (`server.ts`) serving static files only (no ML processing)
 **ML Pipeline**: Main thread transformers.js with DistilBERT zero-shot classification  
 **Runtime**: Deno with automatic npm package resolution
@@ -14,7 +14,12 @@ A Deno-based web application that intelligently routes search queries to appropr
 
 ### Core Files
 
-- `index.html`: Complete SPA with embedded JS, handles UI and ML classification
+- `index.html`: Main SPA entry point, loads modular JavaScript
+- `js/app.js`: Main application logic, UI event handling, provider routing
+- `js/constants.js`: Provider definitions, settings, ML label mappings
+- `js/ml.js`: ML pipeline initialization and transformers.js integration
+- `js/utils.js`: Utility functions (DOM helpers, query encoding)
+- `js/worker-client.js`: Web Worker client (legacy, not currently used)
 - `server.ts`: Deno HTTP server serving static files (no ML endpoints)
 - `style.css`: CSS variables with light/dark mode support
 
@@ -51,12 +56,19 @@ deno task start
 
 ```text
 /
-├── index.html          # Main SPA with embedded JavaScript + ML
-├── server.ts           # Deno static file server (no ML endpoints)
+├── index.html          # Main SPA entry point
+├── js/                 # Modular JavaScript components
+│   ├── app.js          # Main application logic
+│   ├── constants.js    # Providers, settings, mappings
+│   ├── ml.js           # ML pipeline integration
+│   ├── utils.js        # Utility functions
+│   └── worker-client.js # Web Worker client (legacy)
+├── server.ts           # Deno static file server
 ├── style.css           # CSS with theme variables
 ├── deno.json           # Deno tasks: dev (watch), start
 ├── compose.yml         # Docker Compose configuration
 ├── llm-shared/         # Shared development guidelines (git submodule)
+├── models/             # Local ML model cache (optional)
 └── node_modules/       # Auto-managed Deno npm cache
 ```
 
@@ -64,15 +76,18 @@ deno task start
 
 ### ML Integration (WORKING)
 
-- **Main thread approach**: No Web Workers, ML runs in main thread
+- **Main thread approach**: No Web Workers, ML runs in main thread with ~100ms blocking
 - **Library loading**: CDN import via `await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2?v=5')`
+- **Model**: `Xenova/distilbert-base-uncased-mnli` for zero-shot classification
+- **Pipeline init**: `js/ml.js` handles initialization with progress callbacks and error states
+- **Classification flow**: `startClassification()` in `js/app.js` → `initMLPipeline()` → main thread inference
+- **Confidence scoring**: Only trusts ML if top score ≥60% and margin ≥15% from second choice
 - **Error handling**: Single attempt with `mlInitAttempted` flag prevents console spam
-- **UI feedback**: Shows "ML loading...", "ML ready", or "ML unavailable"
-- **Message flow**: Direct function calls, no worker message passing
+- **UI feedback**: Real-time status in `#ml` element ("ML loading...", "ML ready", "ML unavailable")
 
 ### Provider Configuration
 
-Providers defined in `PROVIDERS` array in `index.html`:
+Providers defined in `PROVIDERS` array in `js/constants.js`:
 
 ```javascript
 {
@@ -83,6 +98,13 @@ Providers defined in `PROVIDERS` array in `index.html`:
   aliases: ["!imdb", "!i"]
 }
 ```
+
+**Key Configuration Objects** (all in `js/constants.js`):
+- `PROVIDERS`: Array of search providers with URLs, types, and aliases
+- `SETTINGS`: Local storage configuration (openInNewTab, pinned providers, etc.)
+- `LABELS`: ML classification labels `["movie", "tv show", "video game", "general"]` 
+- `LABEL_TO_PROVIDER`: Maps ML predictions to default providers
+- `LABEL_TO_TYPE`: Maps ML labels to provider type filtering
 
 ### State Management
 
@@ -115,11 +137,12 @@ Providers defined in `PROVIDERS` array in `index.html`:
 
 ## Common Development Tasks
 
-- **Add new provider**: Modify `PROVIDERS` array in `index.html`
-- **Adjust ML labels**: Update `LABELS`/`LABEL_TO_PROVIDER` mappings
-- **Modify heuristics**: Edit `classifyQuery()` function for pattern matching
-- **Update styles**: Modify CSS custom properties in `:root` selectors
-- **Debug ML**: Check browser console for CDN loading issues
+- **Add new provider**: Modify `PROVIDERS` array in `js/constants.js`
+- **Adjust ML labels**: Update `LABELS`/`LABEL_TO_PROVIDER` mappings in `js/constants.js`
+- **Modify heuristics**: Edit `classifyQuery()` function in `js/app.js` for pattern matching
+- **Update styles**: Modify CSS custom properties in `:root` selectors in `style.css`
+- **Debug ML**: Check browser console for CDN loading issues, monitor `js/ml.js` status
+- **Test providers**: Use keyboard shortcuts (Alt+0-9) or click chips to test routing
 
 ## Current Status
 
@@ -141,6 +164,10 @@ Providers defined in `PROVIDERS` array in `index.html`:
 ### Development Guidelines
 
 - **Test ML thoroughly**: Clear browser cache if CDN URLs change
-- **Focus on client-side**: Don't add server-side ML endpoints
+- **Focus on client-side**: Don't add server-side ML endpoints  
 - **Maintain fallbacks**: Heuristics should handle 95% of queries effectively
 - **Cache busting**: Use URL parameters (`?v=X`) when changing CDN imports
+- **Follow llm-shared conventions**: This project uses the shared development guidelines in `llm-shared/`
+- **No build system needed**: Project runs directly with `deno task dev` - no compilation step
+- **Branch workflow**: Never commit directly to main - use feature branches and PRs
+- **Module structure**: Keep JavaScript modular in `js/` directory, avoid large monolithic files
