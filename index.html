@@ -208,17 +208,12 @@
       };
 
       function predictedType(q) {
-        // Use trusted model prediction if available; otherwise fall back to heuristic
-        if (
-          MODEL.enabled &&
-          MODEL.suggest &&
-          MODEL.ctx === normalize(q) &&
-          shouldTrustModel()
-        ) {
+        // If the model has produced a suggestion for the current input, ALWAYS use it.
+        if (MODEL.suggest && MODEL.ctx === normalize(q)) {
           return LABEL_TO_TYPE[MODEL.suggest] || "general";
         }
+        // Otherwise fall back to heuristic
         const h = classifyQuery(q);
-        // classifyQuery returns 'movie' | 'tv' | 'game' | 'alias' | 'unknown'
         if (h === "tv" || h === "movie" || h === "game") return h;
         return "general";
       }
