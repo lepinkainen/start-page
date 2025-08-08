@@ -63,7 +63,6 @@
           <label><input type="checkbox" id="newtab" /> Open in new tab</label>
           <span class="badge" id="rec"></span>
           <span class="badge ml" id="ml"></span>
-          <span class="badge version" id="swver"></span>
           <span class="hint"
             >Pin providers you often open together (click the dot). Edit the
             list by modifying <code>PROVIDERS</code> in the source.</span
@@ -237,35 +236,50 @@
         lastId: 0,
       };
 
-      // Module worker (ESM) for Firefox compatibility
-      let classifierWorker = null;
-      function ensureWorker() {
-        if (classifierWorker) return classifierWorker;
-        classifierWorker = new Worker("./worker.js"); // classic worker
-        classifierWorker.onmessage = (e) => {
-          const msg = e.data || {};
-          if (msg.type === "ready") {
-            MODEL.ready = true;
-            byId("ml").textContent = "ML ready";
-          } else if (msg.type === "result") {
-            if (MODEL.inFlight !== msg.id) return; // stale
-            const current = normalize(qEl.value);
-            if (current !== MODEL.ctx) return; // user kept typing; ignore
-            MODEL.suggest = msg.label;
-            MODEL.scores = msg.scores || null;
-            MODEL.runtime = msg.runtimeMs || 0;
-            byId("ml").textContent = `AI: ${msg.label} ${
-              (msg.scores && scorePct(msg.label, msg.scores)) || ""
-            } `;
-            renderChips(qEl.value);
-          } else if (msg.type === "error") {
-            byId("ml").textContent = "ML error";
-            console.warn("ML error:", msg.message);
-          }
-        };
-        classifierWorker.postMessage({ type: "warmup" });
-        byId("ml").textContent = "ML warming…";
-        return classifierWorker;
+      // Main thread ML classification
+      let mlPipeline = null;
+      let mlInitAttempted = false;
+      
+      async function initMLPipeline() {
+        if (mlPipeline) return mlPipeline;
+        if (mlInitAttempted) return null; // Don't retry on every keystroke
+        
+        mlInitAttempted = true;
+        try {
+          console.log("Loading transformers.js...");
+          byId("ml").textContent = "ML loading...";
+          
+          // Import transformers.js from CDN with cache busting
+          const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2?v=5');
+          
+          // Skip local model check
+          env.allowLocalModels = false;
+          
+          // Create pipeline
+          mlPipeline = await pipeline(
+            'zero-shot-classification',
+            'Xenova/distilbert-base-uncased-mnli',
+            {
+              progress_callback: (progress) => {
+                if (progress.status === 'downloading') {
+                  byId("ml").textContent = `ML downloading: ${Math.round(progress.progress || 0)}%`;
+                } else if (progress.status === 'ready') {
+                  byId("ml").textContent = "ML ready";
+                }
+              }
+            }
+          );
+          
+          MODEL.ready = true;
+          byId("ml").textContent = "ML ready";
+          console.log("ML pipeline initialized");
+          return mlPipeline;
+        } catch (error) {
+          console.warn("ML initialization failed:", error);
+          byId("ml").textContent = "ML unavailable";
+          MODEL.enabled = false;
+          return null;
+        }
       }
 
       function scorePct(label, scores) {
@@ -275,26 +289,47 @@
       }
 
       async function startClassification(q) {
+        const id = Math.random().toString(36).slice(2);
+        MODEL.inFlight = id;
         MODEL.ctx = normalize(q);
-        byId("ml").textContent = "ML…";
+        
         try {
-          const r = await fetch("/classify", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ text: q }),
+          byId("ml").textContent = "ML classifying...";
+          const pipeline = await initMLPipeline();
+          
+          if (!pipeline) {
+            // Pipeline failed to load, fall back to heuristics
+            return;
+          }
+          
+          const startTime = performance.now();
+          const result = await pipeline(q, LABELS);
+          const endTime = performance.now();
+          
+          // Check if this is still the current query
+          if (MODEL.inFlight !== id) return; // stale request
+          const current = normalize(qEl.value);
+          if (current !== MODEL.ctx) return; // user kept typing; ignore
+          
+          // Process results
+          const scores = {};
+          result.scores.forEach((score, idx) => {
+            scores[result.labels[idx]] = score;
           });
-          const { label, scores, ms, error } = await r.json();
-          if (error) throw new Error(error);
-          if (normalize(q) !== MODEL.ctx) return; // user kept typing; ignore stale
-          MODEL.suggest = label;
+          
+          const topLabel = result.labels[0];
+          MODEL.suggest = topLabel;
           MODEL.scores = scores;
-          MODEL.runtime = ms;
-          byId("ml").textContent = `AI: ${label} (${Math.round(
-            (scores[label] || 0) * 100
-          )}%)`;
-          renderChips(q);
-        } catch (e) {
-          console.warn("ML error:", e);
+          MODEL.runtime = Math.round(endTime - startTime);
+          
+          byId("ml").textContent = `AI: ${topLabel} ${
+            scorePct(topLabel, scores)
+          } (${MODEL.runtime}ms)`;
+          
+          renderChips(qEl.value);
+          
+        } catch (error) {
+          console.warn("ML classification error:", error);
           byId("ml").textContent = "ML error";
         }
       }
@@ -535,76 +570,6 @@
 
       renderChips("");
       qEl.focus();
-
-      /*
-      // --- Service Worker Version and Refresh ---
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./sw.js")
-            .catch((err) => console.warn("SW registration failed:", err));
-        });
-
-        // Service Worker Version UI/Logic
-        const swverEl = document.getElementById("swver");
-        let swVersion = null;
-        let waitingSW = null;
-
-        function updateSWVersionUI(version, hasUpdate) {
-          swverEl.innerHTML = "";
-          if (version) {
-            swverEl.textContent = `SW v${version}`;
-            if (hasUpdate) {
-              const btn = document.createElement("button");
-              btn.textContent = "Refresh";
-              btn.className = "btn small";
-              btn.style.marginLeft = "8px";
-              btn.onclick = function () {
-                // Tell waiting SW to skip waiting
-                if (waitingSW) {
-                  waitingSW.postMessage({ type: "skipWaiting" });
-                }
-              };
-              swverEl.appendChild(btn);
-            }
-          }
-        }
-
-        // Listen for controllerchange to reload page after SW update
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          window.location.reload();
-        });
-
-        // Get SW version after ready
-        navigator.serviceWorker.ready.then((reg) => {
-          // Send message to SW to get version
-          if (reg.active) {
-            reg.active.postMessage({ type: "getVersion" });
-          }
-          // If an update is waiting, remember it
-          if (reg.waiting) {
-            waitingSW = reg.waiting;
-          }
-        });
-
-        // Listen for SW messages
-        navigator.serviceWorker.addEventListener("message", (event) => {
-          const msg = event.data || {};
-          if (msg.type === "version") {
-            swVersion = msg.version;
-            // If update is waiting, show refresh button
-            let hasUpdate = false;
-            navigator.serviceWorker.getRegistration().then((reg) => {
-              if (reg && reg.waiting) {
-                waitingSW = reg.waiting;
-                hasUpdate = true;
-              }
-              updateSWVersionUI(swVersion, hasUpdate);
-            });
-          }
-        });
-      }
-      */
     </script>
   </body>
 </html>

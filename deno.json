@@ -1,3 +1,7 @@
 {
-    "nodeModulesDir": "auto"
+    "nodeModulesDir": "auto",
+    "tasks": {
+        "dev": "deno run -A --watch server.ts",
+        "start": "deno run -A server.ts"
+    }
 }
