@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Start</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Smart Start</h1>
+      <div class="card">
+        <div class="row">
+          <input
+            id="q"
+            type="text"
+            placeholder="Type a title or use bangs: !imdb The Matrix, !lb Titanic, !oc Hades, …"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="go" class="btn primary" title="Open recommended (Enter)">
+            Open
+          </button>
+        </div>
+        <div id="smart" class="hint">
+          Tip: Press <b>Enter</b> to open the recommended site •
+          <b>Ctrl/⌘+Enter</b> to open all pinned
+        </div>
+        <div id="chips" class="chips" aria-label="Providers"></div>
+        <details class="hint" style="margin-top: 8px">
+          <summary><strong>How the recommendation works</strong></summary>
+          <ul style="margin: 8px 0 0 18px">
+            <li>
+              <b>Aliases</b>: if your query starts with <code>!</code> (e.g.
+              <code>!imdb</code>, <code>!lb</code>, <code>!oc</code>), that
+              provider is used directly.
+            </li>
+            <li>
+              <b>TV cues</b>: strings like <code>S01E02</code>,
+              <code>season</code>, or <code>episode</code> → recommend IMDb.
+            </li>
+            <li>
+              <b>Years</b>: a 4-digit year biases toward films → recommend
+              Letterboxd.
+            </li>
+            <li>
+              <b>Game cues</b>: keywords like <code>PS5</code>,
+              <code>Xbox</code>, <code>Switch</code>, <code>PlayStation</code>,
+              <code>OpenCritic</code>, <code>Metacritic</code>, or
+              <code>DLC</code> → recommend OpenCritic.
+            </li>
+            <li>
+              <b>Default</b>: otherwise your saved default provider is used
+              (right‑click a chip to set).
+            </li>
+            <li>
+              <b>Power move</b>: pin multiple chips and hit
+              <kbd>Ctrl/⌘+Enter</kbd> to open them all at once.
+            </li>
+          </ul>
+        </details>
+        <div class="footer">
+          <label><input type="checkbox" id="newtab" /> Open in new tab</label>
+          <span class="badge" id="rec"></span>
+          <span class="badge ml" id="ml"></span>
+          <span class="badge version" id="swver"></span>
+          <span class="hint"
+            >Pin providers you often open together (click the dot). Edit the
+            list by modifying <code>PROVIDERS</code> in the source.</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const SETTINGS = {
+        region: localStorage.getItem("region") || "US",
+        openInNewTab: JSON.parse(
+          localStorage.getItem("openInNewTab") ?? "true"
+        ),
+        pinned: JSON.parse(localStorage.getItem("pinnedProviders") || "[]"),
+        defaultProvider: localStorage.getItem("defaultProvider") || null,
+      };
+
+      const PROVIDERS = [
+        {
+          id: "imdb",
+          name: "IMDb",
+          url: "https://www.imdb.com/find/?q={q}",
+          types: ["movie", "tv"],
+          aliases: ["!imdb", "!i"],
+        },
+        {
+          id: "letterboxd",
+          name: "Letterboxd",
+          url: "https://letterboxd.com/search/{q}",
+          types: ["movie"],
+          aliases: ["!lb", "!letterboxd"],
+        },
+        {
+          id: "tmdb",
+          name: "TMDb",
+          url: "https://www.themoviedb.org/search?query={q}",
+          types: ["movie", "tv"],
+          aliases: ["!tmdb"],
+        },
+        {
+          id: "trakt",
+          name: "Trakt",
+          url: "https://trakt.tv/search?query={q}",
+          types: ["movie", "tv"],
+          aliases: ["!trakt"],
+        },
+        {
+          id: "opencritic",
+          name: "OpenCritic",
+          url: "https://duckduckgo.com/?q=site%3Aopencritic.com%2Fgame+{q}",
+          types: ["game"],
+          aliases: ["!oc", "!opencritic"],
+        },
+        {
+          id: "metacritic",
+          name: "Metacritic (Games)",
+          url: "https://duckduckgo.com/?q=site%3Ametacritic.com%2Fgame+{q}",
+          types: ["game"],
+          aliases: ["!mc", "!metacritic"],
+        },
+        {
+          id: "justwatch",
+          name: "JustWatch",
+          url: () =>
+            `https://www.justwatch.com/${SETTINGS.region.toLowerCase()}/search?q={q}`,
+          types: ["movie", "tv"],
+          aliases: ["!jw", "!justwatch"],
+        },
+        {
+          id: "rt",
+          name: "Rotten Tomatoes",
+          url: "https://www.rottentomatoes.com/search?search={q}",
+          types: ["movie", "tv"],
+          aliases: ["!rt"],
+        },
+        {
+          id: "wikipedia",
+          name: "Wikipedia",
+          url: "https://en.wikipedia.org/w/index.php?search={q}",
+          types: ["general"],
+          aliases: ["!w", "!wp"],
+        },
+        {
+          id: "kagi",
+          name: "Kagi",
+          url: "https://kagi.com/search?q={q}",
+          types: ["general"],
+          aliases: ["!k"],
+        },
+        {
+          id: "ddg",
+          name: "DuckDuckGo",
+          url: "https://duckduckgo.com/?q={q}",
+          types: ["general"],
+          aliases: ["!ddg"],
+        },
+        {
+          id: "google",
+          name: "Google",
+          url: "https://www.google.com/search?q={q}",
+          types: ["general"],
+          aliases: ["!g"],
+        },
+        {
+          id: "youtube",
+          name: "YouTube",
+          url: "https://www.youtube.com/results?search_query={q}",
+          types: ["general"],
+          aliases: ["!yt"],
+        },
+        {
+          id: "github",
+          name: "GitHub",
+          url: "https://github.com/search?q={q}",
+          types: ["code"],
+          aliases: ["!gh"],
+        },
+        {
+          id: "stackoverflow",
+          name: "Stack Overflow",
+          url: "https://stackoverflow.com/search?q={q}",
+          types: ["code"],
+          aliases: ["!so"],
+        },
+      ];
+
+      const LABELS = ["movie", "tv show", "video game", "general"];
+      const LABEL_TO_PROVIDER = {
+        movie: "letterboxd",
+        "tv show": "imdb",
+        "video game": "opencritic",
+        general: "kagi",
+      };
+
+      // Map model labels to provider type keys
+      const LABEL_TO_TYPE = {
+        movie: "movie",
+        "tv show": "tv",
+        "video game": "game",
+        general: "general",
+      };
+
+      function predictedType(q) {
+        // Use trusted model prediction if available; otherwise fall back to heuristic
+        if (
+          MODEL.enabled &&
+          MODEL.suggest &&
+          MODEL.ctx === normalize(q) &&
+          shouldTrustModel()
+        ) {
+          return LABEL_TO_TYPE[MODEL.suggest] || "general";
+        }
+        const h = classifyQuery(q);
+        // classifyQuery returns 'movie' | 'tv' | 'game' | 'alias' | 'unknown'
+        if (h === "tv" || h === "movie" || h === "game") return h;
+        return "general";
+      }
+
+      function selectedProvidersForQuery(q) {
+        const t = predictedType(q);
+        if (t === "general" || t === "alias") return [];
+        return PROVIDERS.filter(
+          (p) => Array.isArray(p.types) && p.types.includes(t)
+        ).map((p) => p.id);
+      }
+
+      let MODEL = {
+        enabled: true,
+        ready: false,
+        ctx: "",
+        suggest: null,
+        scores: null,
+        runtime: 0,
+        inFlight: null,
+        lastId: 0,
+      };
+
+      // Module worker (ESM) for Firefox compatibility
+      let classifierWorker = null;
+      function ensureWorker() {
+        if (classifierWorker) return classifierWorker;
+        classifierWorker = new Worker("./worker.js"); // classic worker
+        classifierWorker.onmessage = (e) => {
+          const msg = e.data || {};
+          if (msg.type === "ready") {
+            MODEL.ready = true;
+            byId("ml").textContent = "ML ready";
+          } else if (msg.type === "result") {
+            if (MODEL.inFlight !== msg.id) return; // stale
+            const current = normalize(qEl.value);
+            if (current !== MODEL.ctx) return; // user kept typing; ignore
+            MODEL.suggest = msg.label;
+            MODEL.scores = msg.scores || null;
+            MODEL.runtime = msg.runtimeMs || 0;
+            byId("ml").textContent = `AI: ${msg.label} ${
+              (msg.scores && scorePct(msg.label, msg.scores)) || ""
+            } `;
+            renderChips(qEl.value);
+          } else if (msg.type === "error") {
+            byId("ml").textContent = "ML error";
+            console.warn("ML error:", msg.message);
+          }
+        };
+        classifierWorker.postMessage({ type: "warmup" });
+        byId("ml").textContent = "ML warming…";
+        return classifierWorker;
+      }
+
+      function scorePct(label, scores) {
+        const v = scores[label];
+        if (typeof v !== "number") return "";
+        return `(${Math.round(v * 100)}%)`;
+      }
+
+      async function startClassification(q) {
+        MODEL.ctx = normalize(q);
+        byId("ml").textContent = "ML…";
+        try {
+          const r = await fetch("/classify", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text: q }),
+          });
+          const { label, scores, ms, error } = await r.json();
+          if (error) throw new Error(error);
+          if (normalize(q) !== MODEL.ctx) return; // user kept typing; ignore stale
+          MODEL.suggest = label;
+          MODEL.scores = scores;
+          MODEL.runtime = ms;
+          byId("ml").textContent = `AI: ${label} (${Math.round(
+            (scores[label] || 0) * 100
+          )}%)`;
+          renderChips(q);
+        } catch (e) {
+          console.warn("ML error:", e);
+          byId("ml").textContent = "ML error";
+        }
+      }
+      // --- Helpers & UI ---
+      const byId = (id) => document.getElementById(id);
+      const qEl = byId("q");
+      const chipsEl = byId("chips");
+      const recEl = byId("rec");
+      const mlEl = byId("ml");
+      const newTabEl = byId("newtab");
+      const goEl = byId("go");
+      newTabEl.checked = SETTINGS.openInNewTab;
+
+      function normalize(s) {
+        return (s || "").trim().toLowerCase();
+      }
+      function findProviderByAlias(alias) {
+        const a = alias.toLowerCase();
+        return PROVIDERS.find((p) =>
+          (p.aliases || []).some((x) => x.toLowerCase() === a)
+        );
+      }
+      function providerById(id) {
+        return PROVIDERS.find((p) => p.id === id);
+      }
+
+      function classifyQuery(q) {
+        const s = normalize(q);
+        if (!s) return "unknown";
+        if (s.startsWith("!")) return "alias";
+        if (
+          /\b(tv|tv[-\s]?show|series|mini[-\s]?series|s\d{1,2}e\d{1,2}|season|episode|ep\s*\d{1,3})\b/i.test(
+            s
+          )
+        )
+          return "tv";
+        if (/\b\d{4}\b/.test(s)) return "movie";
+        if (
+          /\b(ps5|ps4|xbox|xb1|xbxs|series\s?[xs]|switch|nintendo|playstation|opencritic|metacritic|dlc)\b/i.test(
+            s
+          )
+        )
+          return "game";
+        return "general";
+      }
+
+      function resolveAlias(q) {
+        const first = q.trim().split(/\s+/)[0];
+        const prov = findProviderByAlias(first);
+        if (!prov) return null;
+        const rest = q.trim().slice(first.length).trim();
+        return { prov, rest };
+      }
+
+      function shouldTrustModel() {
+        const scores = MODEL.scores;
+        if (!scores) return false;
+        const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+        const [topL, topS] = entries[0];
+        const nextS = entries[1] ? entries[1][1] : 0;
+        return topS >= 0.6 && topS - nextS >= 0.15;
+      }
+
+      function recommendedProvider(q) {
+        const alias = resolveAlias(q);
+        if (alias) return alias.prov.id;
+
+        const cls = classifyQuery(q);
+        let id =
+          SETTINGS.defaultProvider && cls === "unknown"
+            ? SETTINGS.defaultProvider
+            : cls === "tv"
+            ? "imdb"
+            : cls === "movie"
+            ? "letterboxd"
+            : cls === "game"
+            ? "opencritic"
+            : SETTINGS.defaultProvider || "kagi";
+
+        if (
+          MODEL.enabled &&
+          MODEL.suggest &&
+          MODEL.ctx === normalize(q) &&
+          shouldTrustModel()
+        ) {
+          const mapped = LABEL_TO_PROVIDER[MODEL.suggest];
+          if (mapped) id = mapped;
+        }
+        return id;
+      }
+
+      function encodeQuery(q) {
+        return encodeURIComponent(q.trim());
+      }
+      function makeUrl(provider, q) {
+        let query = q;
+        const alias = resolveAlias(q);
+        if (alias) query = alias.rest;
+        const tpl =
+          typeof provider.url === "function" ? provider.url() : provider.url;
+        return tpl.replace("{q}", encodeQuery(query));
+      }
+      function openUrl(url) {
+        if (SETTINGS.openInNewTab) window.open(url, "_blank", "noopener");
+        else window.location.href = url;
+      }
+      function renderChips(query) {
+        chipsEl.innerHTML = "";
+        const recId = recommendedProvider(query);
+        recEl.textContent = recId
+          ? `Recommended: ${providerById(recId)?.name}`
+          : "";
+        if (MODEL.suggest && MODEL.ctx === normalize(query)) {
+          const mapped = LABEL_TO_PROVIDER[MODEL.suggest];
+          const trust = shouldTrustModel();
+          mlEl.textContent = `AI: ${MODEL.suggest}${
+            MODEL.scores ? " " + scorePct(MODEL.suggest, MODEL.scores) : ""
+          }${trust ? "" : " (?)"}`;
+        }
+
+        PROVIDERS.forEach((p, i) => {
+          const chip = document.createElement("button");
+          chip.className = "chip";
+          chip.setAttribute("type", "button");
+          chip.dataset.id = p.id;
+          chip.dataset.pinned = SETTINGS.pinned.includes(p.id);
+          chip.innerHTML = `
+          <span class="pin" title="Pin/unpin"></span>
+          <strong>${p.name}</strong>
+          <span class="kbd">${i < 10 ? `Alt+${i}` : ""}</span>
+        `;
+          chip.onclick = (ev) => {
+            if (ev.target.classList.contains("pin")) {
+              togglePin(p.id);
+              ev.stopPropagation();
+              return;
+            }
+            const url = makeUrl(p, qEl.value);
+            openUrl(url);
+          };
+          chip.addEventListener("auxclick", (ev) => {
+            if (ev.button === 1) {
+              openUrl(makeUrl(p, qEl.value));
+            }
+          });
+          chipsEl.appendChild(chip);
+        });
+
+        // Mark all chips that match the predicted type
+        const selectedIds = new Set(selectedProvidersForQuery(query));
+        chipsEl.querySelectorAll(".chip").forEach((ch) => {
+          const id = ch.dataset.id;
+          if (selectedIds.has(id)) {
+            ch.dataset.selected = "true";
+          }
+        });
+        // Also emphasize the single recommended one
+        const recChip = chipsEl.querySelector(`.chip[data-id="${recId}"]`);
+        if (recChip) recChip.dataset.selected = "true";
+        applyPinnedState();
+      }
+      function togglePin(id) {
+        const idx = SETTINGS.pinned.indexOf(id);
+        if (idx === -1) SETTINGS.pinned.push(id);
+        else SETTINGS.pinned.splice(idx, 1);
+        localStorage.setItem(
+          "pinnedProviders",
+          JSON.stringify(SETTINGS.pinned)
+        );
+        applyPinnedState();
+      }
+      function applyPinnedState() {
+        chipsEl.querySelectorAll(".chip").forEach((ch) => {
+          ch.dataset.pinned = SETTINGS.pinned.includes(ch.dataset.id);
+        });
+      }
+      function openRecommended() {
+        const recId = recommendedProvider(qEl.value);
+        const prov = providerById(recId) || providerById("kagi");
+        openUrl(makeUrl(prov, qEl.value));
+      }
+      function openPinned() {
+        const list = SETTINGS.pinned.length
+          ? SETTINGS.pinned
+          : [recommendedProvider(qEl.value)];
+        list.forEach((id) => {
+          const prov = providerById(id);
+          if (prov) openUrl(makeUrl(prov, qEl.value));
+        });
+      }
+
+      function openSelected() {
+        // Open all chips currently marked as selected for the current query
+        const list = Array.from(
+          chipsEl.querySelectorAll('.chip[data-selected="true"]')
+        ).map((ch) => ch.dataset.id);
+        if (!list.length) return openRecommended();
+        list.forEach((id) => {
+          const prov = providerById(id);
+          if (prov) openUrl(makeUrl(prov, qEl.value));
+        });
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          openPinned();
+        } else if (e.key === "Enter" && e.shiftKey) {
+          e.preventDefault();
+          openSelected();
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          openRecommended();
+        } else if (e.altKey && /\d/.test(e.key)) {
+          const idx = Number(e.key);
+          const chip = chipsEl.querySelectorAll(".chip")[idx];
+          if (chip) {
+            e.preventDefault();
+            const prov = providerById(chip.dataset.id);
+            openUrl(makeUrl(prov, qEl.value));
+          }
+        }
+      });
+
+      qEl.addEventListener("input", () => {
+        const val = qEl.value;
+        renderChips(val);
+        if (val && !resolveAlias(val)) startClassification(val);
+      });
+      goEl.addEventListener("click", openRecommended);
+      newTabEl.addEventListener("change", () => {
+        SETTINGS.openInNewTab = newTabEl.checked;
+        localStorage.setItem(
+          "openInNewTab",
+          JSON.stringify(SETTINGS.openInNewTab)
+        );
+      });
+
+      renderChips("");
+      qEl.focus();
+
+      /*
+      // --- Service Worker Version and Refresh ---
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .catch((err) => console.warn("SW registration failed:", err));
+        });
+
+        // Service Worker Version UI/Logic
+        const swverEl = document.getElementById("swver");
+        let swVersion = null;
+        let waitingSW = null;
+
+        function updateSWVersionUI(version, hasUpdate) {
+          swverEl.innerHTML = "";
+          if (version) {
+            swverEl.textContent = `SW v${version}`;
+            if (hasUpdate) {
+              const btn = document.createElement("button");
+              btn.textContent = "Refresh";
+              btn.className = "btn small";
+              btn.style.marginLeft = "8px";
+              btn.onclick = function () {
+                // Tell waiting SW to skip waiting
+                if (waitingSW) {
+                  waitingSW.postMessage({ type: "skipWaiting" });
+                }
+              };
+              swverEl.appendChild(btn);
+            }
+          }
+        }
+
+        // Listen for controllerchange to reload page after SW update
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          window.location.reload();
+        });
+
+        // Get SW version after ready
+        navigator.serviceWorker.ready.then((reg) => {
+          // Send message to SW to get version
+          if (reg.active) {
+            reg.active.postMessage({ type: "getVersion" });
+          }
+          // If an update is waiting, remember it
+          if (reg.waiting) {
+            waitingSW = reg.waiting;
+          }
+        });
+
+        // Listen for SW messages
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          const msg = event.data || {};
+          if (msg.type === "version") {
+            swVersion = msg.version;
+            // If update is waiting, show refresh button
+            let hasUpdate = false;
+            navigator.serviceWorker.getRegistration().then((reg) => {
+              if (reg && reg.waiting) {
+                waitingSW = reg.waiting;
+                hasUpdate = true;
+              }
+              updateSWVersionUI(swVersion, hasUpdate);
+            });
+          }
+        });
+      }
+      */
+    </script>
+  </body>
+</html>
