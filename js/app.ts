@@ -290,9 +290,10 @@ function openRecommended(): void {
 }
 
 function openPinned(): void {
-  const list = SETTINGS.pinned.length
-    ? SETTINGS.pinned
-    : [recommendedProvider(qEl.value)];
+  let list = selectedProvidersForQuery(qEl.value);
+  if (list.length === 0) {
+    list = [recommendedProvider(qEl.value)];
+  }
   list.forEach((id) => {
     const prov = providerById(id);
     if (prov) openUrl(makeUrl(prov, qEl.value));
