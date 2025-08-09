@@ -1,53 +1,55 @@
-import type { MLPipeline, TransformersModule } from "./types.ts";
+import type { MLPipeline, ClassificationResult } from "./types.ts";
 
 export const LABELS = ["movie", "tv show", "video game", "general"] as const;
 
-let mlPipeline: MLPipeline | null = null;
+// Import the worker client (will be transpiled by server)
+// @ts-ignore - worker-client.js is a JavaScript file
+import { initWorker, classifyWithWorker, isWorkerReady } from "./worker-client.js";
+
+let mlInitialized = false;
 let mlInitAttempted = false;
+let mlPipeline: MLPipeline | null = null;
 
 export async function initMLPipeline(): Promise<MLPipeline | null> {
-  if (mlPipeline) return mlPipeline;
+  if (mlPipeline && mlInitialized) return mlPipeline;
   if (mlInitAttempted) return null; // Don't retry on every keystroke
 
   mlInitAttempted = true;
+  
   try {
-    console.log("Loading transformers.js...");
+    console.log("Initializing ML Worker...");
     const mlStatusEl = document.getElementById("ml");
     if (mlStatusEl) mlStatusEl.textContent = "ML loading...";
 
-    const module: TransformersModule = await import(
-      "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2?v=5"
-    );
-
-    module.env.allowLocalModels = false;
-
-    mlPipeline = await module.pipeline(
-      "zero-shot-classification",
-      "Xenova/distilbert-base-uncased-mnli",
-      {
-        progress_callback: (progress: any) => {
-          const statusEl = document.getElementById("ml");
-          if (!statusEl) return;
-
-          if (progress.status === "downloading") {
-            statusEl.textContent = `ML downloading: ${Math.round(
-              progress.progress || 0
-            )}%`;
-          } else if (progress.status === "ready") {
-            statusEl.textContent = "ML ready";
-          }
-        },
-      }
-    );
-
+    // Initialize the worker
+    await initWorker();
+    
+    // Create a function that matches the MLPipeline interface
+    mlPipeline = async (text: string, labels: string[]): Promise<ClassificationResult> => {
+      const result = await classifyWithWorker(text, labels);
+      return {
+        labels: result.labels,
+        scores: result.scores
+      };
+    };
+    
+    mlInitialized = true;
+    
     const statusEl = document.getElementById("ml");
     if (statusEl) statusEl.textContent = "ML ready";
-    console.log("ML pipeline initialized");
+    console.log("ML Worker pipeline initialized");
+    
     return mlPipeline;
+    
   } catch (error) {
-    console.warn("ML initialization failed:", error);
+    console.warn("ML Worker initialization failed:", error);
     const statusEl = document.getElementById("ml");
     if (statusEl) statusEl.textContent = "ML unavailable";
     return null;
   }
+}
+
+// Export a function to check if ML is ready
+export function isMLReady(): boolean {
+  return mlInitialized && isWorkerReady();
 }

@@ -5,4 +5,7 @@ node_modules/
 transformers.min.js
 transformers.min.js.map
 models/
+
+# generated bundle
 worker.bundle.js
+worker.bundle.js.map
