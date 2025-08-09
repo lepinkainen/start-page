@@ -159,9 +159,9 @@ function renderChips(query: string): void {
     chip.dataset.id = p.id;
     chip.dataset.pinned = String(SETTINGS.pinned.includes(p.id));
     chip.innerHTML = `
+      ${p.icon ? `<img src="${p.icon}" alt="${p.name} icon" class="icon">` : ""}
       <span class="pin" title="Pin/unpin"></span>
       <strong>${p.name}</strong>
-      <span class="kbd">${i < 10 ? `Alt+${i}` : ""}</span>
     `;
     chip.onclick = (ev) => {
       if ((ev.target as HTMLElement).classList.contains("pin")) {
@@ -189,7 +189,9 @@ function renderChips(query: string): void {
     }
   });
   // Also emphasize the single recommended one
-  const recChip = chipsEl.querySelector(`.chip[data-id="${recId}"]`) as HTMLElement;
+  const recChip = chipsEl.querySelector(
+    `.chip[data-id="${recId}"]`
+  ) as HTMLElement;
   if (recChip) recChip.dataset.selected = "true";
   applyPinnedState();
 }
@@ -212,7 +214,9 @@ function applyPinnedState(): void {
   chipsEl.querySelectorAll(".chip").forEach((ch) => {
     const element = ch as HTMLElement;
     if (element.dataset.id) {
-      element.dataset.pinned = String(SETTINGS.pinned.includes(element.dataset.id));
+      element.dataset.pinned = String(
+        SETTINGS.pinned.includes(element.dataset.id)
+      );
     }
   });
 }

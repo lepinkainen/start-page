@@ -54,6 +54,11 @@ input#q:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in 
 .chip .pin { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--border); background: transparent; }
 .chip[data-pinned="true"] .pin { background: var(--accent); border-color: var(--accent); }
 .chip .kbd { font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+.chip .icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
 
 .footer { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
 .select, .btn { border: 1px solid var(--border); background: var(--chip); color: var(--fg); border-radius: 10px; padding: 8px 10px; }

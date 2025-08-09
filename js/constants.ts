@@ -16,6 +16,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.imdb.com/find/?q={q}",
     types: ["movie", "tv"],
     aliases: ["!imdb", "!i"],
+    icon: "https://www.google.com/s2/favicons?domain=imdb.com",
   },
   {
     id: "letterboxd",
@@ -23,6 +24,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://letterboxd.com/search/{q}",
     types: ["movie"],
     aliases: ["!lb", "!letterboxd"],
+    icon: "https://www.google.com/s2/favicons?domain=letterboxd.com",
   },
   {
     id: "tmdb",
@@ -30,6 +32,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.themoviedb.org/search?query={q}",
     types: ["movie", "tv"],
     aliases: ["!tmdb"],
+    icon: "https://www.google.com/s2/favicons?domain=themoviedb.org",
   },
   {
     id: "trakt",
@@ -37,6 +40,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://trakt.tv/search?query={q}",
     types: ["movie", "tv"],
     aliases: ["!trakt"],
+    icon: "https://www.google.com/s2/favicons?domain=trakt.tv",
   },
   {
     id: "opencritic",
@@ -44,6 +48,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://opencritic.com/search?q={q}",
     types: ["game"],
     aliases: ["!oc", "!opencritic"],
+    icon: "https://www.google.com/s2/favicons?domain=opencritic.com",
   },
   {
     id: "metacritic",
@@ -51,6 +56,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.metacritic.com/search/{q}/",
     types: ["game"],
     aliases: ["!mc", "!metacritic"],
+    icon: "https://www.google.com/s2/favicons?domain=metacritic.com",
   },
   {
     id: "justwatch",
@@ -59,6 +65,7 @@ export const PROVIDERS: Provider[] = [
       `https://www.justwatch.com/${SETTINGS.region.toLowerCase()}/search?q={q}`,
     types: ["movie", "tv"],
     aliases: ["!jw", "!justwatch"],
+    icon: "https://www.google.com/s2/favicons?domain=justwatch.com",
   },
   {
     id: "rt",
@@ -66,6 +73,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.rottentomatoes.com/search?search={q}",
     types: ["movie", "tv"],
     aliases: ["!rt"],
+    icon: "https://www.google.com/s2/favicons?domain=rottentomatoes.com",
   },
   {
     id: "wikipedia",
@@ -73,6 +81,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://en.wikipedia.org/w/index.php?search={q}",
     types: ["general"],
     aliases: ["!w", "!wp"],
+    icon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org",
   },
   {
     id: "kagi",
@@ -80,6 +89,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://kagi.com/search?q={q}",
     types: ["general"],
     aliases: ["!k"],
+    icon: "https://www.google.com/s2/favicons?domain=kagi.com",
   },
   {
     id: "ddg",
@@ -87,6 +97,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://duckduckgo.com/?q={q}",
     types: ["general"],
     aliases: ["!ddg"],
+    icon: "https://www.google.com/s2/favicons?domain=duckduckgo.com",
   },
   {
     id: "google",
@@ -94,6 +105,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.google.com/search?q={q}",
     types: ["general"],
     aliases: ["!g"],
+    icon: "https://www.google.com/s2/favicons?domain=google.com",
   },
   {
     id: "youtube",
@@ -101,6 +113,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.youtube.com/results?search_query={q}",
     types: ["general"],
     aliases: ["!yt"],
+    icon: "https://www.google.com/s2/favicons?domain=youtube.com",
   },
   {
     id: "github",
@@ -108,6 +121,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://github.com/search?q={q}",
     types: ["code"],
     aliases: ["!gh"],
+    icon: "https://www.google.com/s2/favicons?domain=github.com",
   },
   {
     id: "stackoverflow",
@@ -115,6 +129,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://stackoverflow.com/search?q={q}",
     types: ["code"],
     aliases: ["!so"],
+    icon: "https://www.google.com/s2/favicons?domain=stackoverflow.com",
   },
   {
     id: "myanimelist",
@@ -122,6 +137,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://myanimelist.net/anime.php?q={q}",
     types: ["anime"],
     aliases: ["!mal"],
+    icon: "https://www.google.com/s2/favicons?domain=myanimelist.net",
   },
   {
     id: "goodreads",
@@ -129,6 +145,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://www.goodreads.com/search?q={q}",
     types: ["book"],
     aliases: ["!gr"],
+    icon: "https://www.google.com/s2/favicons?domain=goodreads.com",
   },
   {
     id: "spotify",
@@ -136,6 +153,7 @@ export const PROVIDERS: Provider[] = [
     url: "http://open.spotify.com/search/{q}",
     types: ["music"],
     aliases: ["!sp"],
+    icon: "https://www.google.com/s2/favicons?domain=spotify.com",
   },
   {
     id: "applepodcasts",
@@ -143,6 +161,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://itunes.apple.com/search?term={q}&entity=podcast",
     types: ["podcast"],
     aliases: ["!ap"],
+    icon: "https://www.google.com/s2/favicons?domain=apple.com",
   },
   {
     id: "boardgamegeek",
@@ -150,6 +169,7 @@ export const PROVIDERS: Provider[] = [
     url: "https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q={q}",
     types: ["boardgame"],
     aliases: ["!bgg"],
+    icon: "https://www.google.com/s2/favicons?domain=boardgamegeek.com",
   },
 ];
 
