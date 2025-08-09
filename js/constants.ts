@@ -41,14 +41,14 @@ export const PROVIDERS: Provider[] = [
   {
     id: "opencritic",
     name: "OpenCritic",
-    url: "https://duckduckgo.com/?q=site%3Aopencritic.com%2Fgame+{q}",
+    url: "https://opencritic.com/search?q={q}",
     types: ["game"],
     aliases: ["!oc", "!opencritic"],
   },
   {
     id: "metacritic",
     name: "Metacritic (Games)",
-    url: "https://duckduckgo.com/?q=site%3Ametacritic.com%2Fgame+{q}",
+    url: "https://www.metacritic.com/search/{q}/",
     types: ["game"],
     aliases: ["!mc", "!metacritic"],
   },
