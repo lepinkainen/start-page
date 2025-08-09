@@ -19,7 +19,7 @@ self.onmessage = async (event) => {
         
         classificationPipeline = await pipeline(
           "zero-shot-classification",
-          "Xenova/distilbert-base-uncased-mnli",
+          "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
           {
             progress_callback: (progress) => {
               self.postMessage({
