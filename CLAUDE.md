@@ -16,11 +16,11 @@ A Deno-based web application that intelligently routes search queries to appropr
 
 - `index.html`: Main SPA entry point, loads modular TypeScript
 - `js/app.ts`: Main application logic, UI event handling, provider routing
-- `js/constants.ts`: Provider definitions, settings, ML label mappings
+- `js/categories.ts`: **SINGLE SOURCE OF TRUTH** - All category definitions with auto-generated mappings
+- `js/constants.ts`: Provider definitions and settings (imports from categories.ts)
 - `js/ml.ts`: ML pipeline initialization and transformers.js integration
 - `js/utils.ts`: Utility functions (DOM helpers, query encoding)
 - `js/types.ts`: TypeScript type definitions for the application
-- `js/worker-client.js`: Web Worker client (legacy, not currently used)
 - `server.ts`: Deno HTTP server with TypeScript transpilation
 - `style.css`: CSS variables with light/dark mode support
 
@@ -28,8 +28,8 @@ A Deno-based web application that intelligently routes search queries to appropr
 
 - **Client-side main thread**: Browser does ALL ML work using transformers.js@2.17.2
 - **Model**: `Xenova/distilbert-base-uncased-mnli` for zero-shot classification
-- **Labels**: `["movie", "tv show", "video game", "general"]`
-- **Fallback**: Robust heuristic classification for when ML unavailable
+- **Labels**: Auto-generated from `CATEGORIES` in `js/categories.ts` - currently supports movie, tv show, anime, video game, book, music, podcast, board game, and general
+- **Fallback**: Robust heuristic classification using regex patterns defined per category
 - **Performance**: ~100ms inference time, single attempt per query
 
 ### Provider Routing Logic
@@ -109,17 +109,17 @@ Providers defined in `PROVIDERS` array in `js/constants.ts`:
   name: "IMDb",
   url: "https://www.imdb.com/find/?q={q}",
   types: ["movie", "tv"],
-  aliases: ["!imdb", "!i"]
+  aliases: ["!imdb", "!i"],
+  icon: "https://www.google.com/s2/favicons?domain=imdb.com" // Optional favicon
 }
 ```
 
-**Key Configuration Objects** (all in `js/constants.ts`):
+**Key Configuration Objects**:
 
-- `PROVIDERS`: Array of search providers with URLs, types, and aliases
-- `SETTINGS`: Local storage configuration (openInNewTab, pinned providers, etc.)
-- `LABELS`: ML classification labels `["movie", "tv show", "video game", "general"]`
-- `LABEL_TO_PROVIDER`: Maps ML predictions to default providers
-- `LABEL_TO_TYPE`: Maps ML labels to provider type filtering
+- `PROVIDERS` (`js/constants.ts`): Array of search providers with URLs, types, aliases, and optional icons
+- `CATEGORIES` (`js/categories.ts`): **SINGLE SOURCE OF TRUTH** - Category definitions with labels, default providers, types, and heuristic patterns
+- `SETTINGS` (`js/constants.ts`): Local storage configuration (openInNewTab, pinned providers, etc.)
+- `LABELS`, `LABEL_TO_PROVIDER`, `LABEL_TO_TYPE` (`js/categories.ts`): Auto-generated from `CATEGORIES`
 
 ### State Management
 
@@ -154,14 +154,31 @@ Providers defined in `PROVIDERS` array in `js/constants.ts`:
 
 ## Common Development Tasks
 
-- **Add new provider**: Modify `PROVIDERS` array in `js/constants.ts`
-- **Adjust ML labels**: Update `LABELS`/`LABEL_TO_PROVIDER` mappings in `js/constants.ts`
-- **Modify heuristics**: Edit `classifyQuery()` function in `js/app.ts` for pattern matching
+### Adding New Categories/Provider Types
+
+**IMPORTANT**: Use the centralized `CATEGORIES` system in `js/categories.ts`:
+
+```javascript
+// Add to CATEGORIES object in js/categories.ts
+newtype: {
+  label: "new type",
+  defaultProvider: "provider-id",
+  providerType: "newtype",
+  heuristicPatterns: /\b(keyword1|keyword2)\b/i, // Optional regex for fallback
+}
+```
+
+All mappings (`LABELS`, `LABEL_TO_PROVIDER`, `LABEL_TO_TYPE`) auto-generate from this config.
+
+### Other Common Tasks
+
+- **Add new provider**: Add to `PROVIDERS` array in `js/constants.ts` with proper `types` field
+- **Modify heuristics**: Update regex patterns in category definitions (`js/categories.ts`)
 - **Update styles**: Modify CSS custom properties in `:root` selectors in `style.css`
 - **Debug ML**: Check browser console for CDN loading issues, monitor `js/ml.ts` status
 - **Test providers**: Use keyboard shortcuts (Alt+0-9) or click chips to test routing
 - **Type checking**: Run `deno task check` to verify TypeScript types
-- **Add new types**: Update interfaces in `js/types.ts` for new features
+- **Add new interfaces**: Update `js/types.ts` for new data structures
 
 ## Current Status
 
@@ -208,6 +225,8 @@ Providers defined in `PROVIDERS` array in `js/constants.ts`:
 
 - **TypeScript first**: Write all new code in TypeScript with proper type annotations
 - **Type safety**: Run `deno task check` before committing to verify types
+- **Optional property access**: Use `(obj as any).optionalProp` when TypeScript can't guarantee property exists across union types
+- **Categories system**: Always add new provider types via `CATEGORIES` in `js/categories.ts` - never manually update label mappings
 - **Test ML thoroughly**: Clear browser cache if CDN URLs change
 - **Focus on client-side**: Don't add server-side ML endpoints
 - **Maintain fallbacks**: Heuristics should handle 95% of queries effectively
@@ -217,4 +236,3 @@ Providers defined in `PROVIDERS` array in `js/constants.ts`:
 - **Branch workflow**: Never commit directly to main - use feature branches and PRs
 - **Module structure**: Keep TypeScript modular in `js/` directory, avoid large monolithic files
 - **Dependency script**: Use `./scripts/get_deps.sh` for ML dependencies, not npm/package managers
-- **Type definitions**: Update `js/types.ts` when adding new data structures or interfaces
