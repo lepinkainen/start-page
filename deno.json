@@ -9,10 +9,21 @@
     "deps-force": "./scripts/get_deps.sh --force"
   },
   "compilerOptions": {
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitReturns": true
+  },
+  "deploy": {
+    "project": "0769dee0-07b3-41f4-be92-3f89447a0c4b",
+    "exclude": [
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "server.ts"
   }
 }
