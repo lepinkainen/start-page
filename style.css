@@ -63,3 +63,9 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .badge { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); background:var(--chip); font-size:12px; color:var(--muted); }
 .badge.ml { border-style: dashed; }
+#ml-progress {
+  width: 100px;
+  height: 8px;
+  margin-right: 5px;
+  vertical-align: middle;
+}

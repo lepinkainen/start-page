@@ -19,8 +19,19 @@ export function initWorker() {
         } else if (e.data.type === "progress") {
           // Update UI with progress
           const mlEl = document.getElementById("ml");
-          if (mlEl) {
-            mlEl.textContent = e.data.message || "ML loading...";
+          const mlProgressEl = document.getElementById("ml-progress");
+          if (mlEl && mlProgressEl) {
+            const progressText = document.createTextNode(e.data.message || "ML loading...");
+            mlEl.innerHTML = ''; // Clear existing content
+            mlEl.appendChild(mlProgressEl);
+            mlEl.appendChild(progressText);
+
+            if (e.data.status === "downloading" && e.data.progress > 0) {
+              mlProgressEl.style.display = "inline-block";
+              mlProgressEl.value = e.data.progress;
+            } else {
+              mlProgressEl.style.display = "none";
+            }
           }
         } else if (e.data.type === "error") {
           console.error("Worker initialization error:", e.data.error);
