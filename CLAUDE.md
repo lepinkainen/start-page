@@ -5,22 +5,23 @@ A Deno-based web application that intelligently routes search queries to appropr
 ## Architecture Overview
 
 **Purpose**: Perform ML inference in the browser using main thread ML with robust heuristic fallback
-**Frontend**: Single-page application (`index.html`) with modular vanilla JavaScript 
-**Backend**: Deno server (`server.ts`) serving static files only (no ML processing)
+**Frontend**: Single-page application (`index.html`) with modular TypeScript components
+**Backend**: Deno server (`server.ts`) with server-side TypeScript transpilation
 **ML Pipeline**: Main thread transformers.js with DistilBERT zero-shot classification  
-**Runtime**: Deno with automatic npm package resolution
+**Runtime**: Deno with TypeScript support and automatic npm package resolution
 
 ## Key Components
 
 ### Core Files
 
-- `index.html`: Main SPA entry point, loads modular JavaScript
-- `js/app.js`: Main application logic, UI event handling, provider routing
-- `js/constants.js`: Provider definitions, settings, ML label mappings
-- `js/ml.js`: ML pipeline initialization and transformers.js integration
-- `js/utils.js`: Utility functions (DOM helpers, query encoding)
+- `index.html`: Main SPA entry point, loads modular TypeScript
+- `js/app.ts`: Main application logic, UI event handling, provider routing
+- `js/constants.ts`: Provider definitions, settings, ML label mappings
+- `js/ml.ts`: ML pipeline initialization and transformers.js integration
+- `js/utils.ts`: Utility functions (DOM helpers, query encoding)
+- `js/types.ts`: TypeScript type definitions for the application
 - `js/worker-client.js`: Web Worker client (legacy, not currently used)
-- `server.ts`: Deno HTTP server serving static files (no ML endpoints)
+- `server.ts`: Deno HTTP server with TypeScript transpilation
 - `style.css`: CSS variables with light/dark mode support
 
 ### ML Classification System
@@ -67,15 +68,16 @@ deno task start
 ```text
 /
 ├── index.html          # Main SPA entry point
-├── js/                 # Modular JavaScript components
-│   ├── app.js          # Main application logic
-│   ├── constants.js    # Providers, settings, mappings
-│   ├── ml.js           # ML pipeline integration
-│   ├── utils.js        # Utility functions
+├── js/                 # Modular TypeScript components
+│   ├── app.ts          # Main application logic
+│   ├── constants.ts    # Providers, settings, mappings
+│   ├── ml.ts           # ML pipeline integration
+│   ├── utils.ts        # Utility functions
+│   ├── types.ts        # TypeScript type definitions
 │   └── worker-client.js # Web Worker client (legacy)
-├── server.ts           # Deno static file server
+├── server.ts           # Deno server with TypeScript transpilation
 ├── style.css           # CSS with theme variables
-├── deno.json           # Deno tasks: dev (watch), start
+├── deno.json           # Deno tasks and TypeScript configuration
 ├── compose.yml         # Docker Compose configuration
 ├── scripts/            # Build and setup scripts
 │   └── get_deps.sh     # Download ML dependencies and bundle worker
@@ -91,15 +93,15 @@ deno task start
 - **Main thread approach**: No Web Workers, ML runs in main thread with ~100ms blocking
 - **Library loading**: CDN import via `await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2?v=5')`
 - **Model**: `Xenova/distilbert-base-uncased-mnli` for zero-shot classification
-- **Pipeline init**: `js/ml.js` handles initialization with progress callbacks and error states
-- **Classification flow**: `startClassification()` in `js/app.js` → `initMLPipeline()` → main thread inference
+- **Pipeline init**: `js/ml.ts` handles initialization with progress callbacks and error states
+- **Classification flow**: `startClassification()` in `js/app.ts` → `initMLPipeline()` → main thread inference
 - **Confidence scoring**: Only trusts ML if top score ≥60% and margin ≥15% from second choice
 - **Error handling**: Single attempt with `mlInitAttempted` flag prevents console spam
 - **UI feedback**: Real-time status in `#ml` element ("ML loading...", "ML ready", "ML unavailable")
 
 ### Provider Configuration
 
-Providers defined in `PROVIDERS` array in `js/constants.js`:
+Providers defined in `PROVIDERS` array in `js/constants.ts`:
 
 ```javascript
 {
@@ -111,10 +113,11 @@ Providers defined in `PROVIDERS` array in `js/constants.js`:
 }
 ```
 
-**Key Configuration Objects** (all in `js/constants.js`):
+**Key Configuration Objects** (all in `js/constants.ts`):
+
 - `PROVIDERS`: Array of search providers with URLs, types, and aliases
 - `SETTINGS`: Local storage configuration (openInNewTab, pinned providers, etc.)
-- `LABELS`: ML classification labels `["movie", "tv show", "video game", "general"]` 
+- `LABELS`: ML classification labels `["movie", "tv show", "video game", "general"]`
 - `LABEL_TO_PROVIDER`: Maps ML predictions to default providers
 - `LABEL_TO_TYPE`: Maps ML labels to provider type filtering
 
@@ -128,10 +131,11 @@ Providers defined in `PROVIDERS` array in `js/constants.js`:
 
 ### Deno Specifics
 
-- Uses `deno.json` for task definitions and `nodeModulesDir: "auto"`
-- **No npm dependencies**: Everything loaded via CDN in browser
+- Uses `deno.json` for task definitions, TypeScript configuration, and `nodeModulesDir: "auto"`
+- **Server-side TypeScript transpilation**: Deno transpiles .ts files to JavaScript for browser
+- **TypeScript support**: Full type checking with `deno task check`
 - **Watch mode**: `deno task dev` auto-restarts server on file changes
-- No build step required - serves static files directly
+- **No build step required**: TypeScript transpiled on-demand with caching
 
 ### ML Architecture Benefits
 
@@ -142,64 +146,75 @@ Providers defined in `PROVIDERS` array in `js/constants.js`:
 
 ### Browser Compatibility
 
-- **Vanilla JS**: No frameworks, works in all modern browsers
+- **Vanilla TypeScript**: No frameworks, works in all modern browsers
 - **Dynamic imports**: Requires modern browser support for `import()`
 - **CSS custom properties**: For theming and responsive design
 - **Progressive enhancement**: Heuristics work when ML fails
+- **TypeScript transpilation**: Server converts TypeScript to JavaScript for browser compatibility
 
 ## Common Development Tasks
 
-- **Add new provider**: Modify `PROVIDERS` array in `js/constants.js`
-- **Adjust ML labels**: Update `LABELS`/`LABEL_TO_PROVIDER` mappings in `js/constants.js`
-- **Modify heuristics**: Edit `classifyQuery()` function in `js/app.js` for pattern matching
+- **Add new provider**: Modify `PROVIDERS` array in `js/constants.ts`
+- **Adjust ML labels**: Update `LABELS`/`LABEL_TO_PROVIDER` mappings in `js/constants.ts`
+- **Modify heuristics**: Edit `classifyQuery()` function in `js/app.ts` for pattern matching
 - **Update styles**: Modify CSS custom properties in `:root` selectors in `style.css`
-- **Debug ML**: Check browser console for CDN loading issues, monitor `js/ml.js` status
+- **Debug ML**: Check browser console for CDN loading issues, monitor `js/ml.ts` status
 - **Test providers**: Use keyboard shortcuts (Alt+0-9) or click chips to test routing
+- **Type checking**: Run `deno task check` to verify TypeScript types
+- **Add new types**: Update interfaces in `js/types.ts` for new features
 
 ## Current Status
 
 ### Working Features ✅
 
+- **TypeScript transpilation**: Server-side TypeScript to JavaScript conversion
 - **ML classification**: Main thread transformers.js working reliably
 - **Heuristic fallback**: Robust pattern matching for all query types
 - **Provider routing**: All keyboard shortcuts and UI interactions
-- **Static serving**: Deno server serves files correctly
+- **Type safety**: Full TypeScript support with type checking
 - **Error handling**: Clean ML failure states with user feedback
 
 ### Architecture Decisions
 
+- **TypeScript with server transpilation**: Full type safety with runtime JavaScript conversion
 - **No Service Worker**: Removed to eliminate cache-related ML loading issues
 - **Main thread ML**: Simpler than Web Workers, reliable CDN loading
-- **Client-side only**: Server does zero ML processing, just serves static files
-- **Vanilla JS**: No frameworks keeps bundle small and loading fast
+- **Client-side ML**: Server does zero ML processing, only serves transpiled files
+- **Vanilla TypeScript**: No frameworks keeps bundle small and loading fast
 
 ### Dependency Management
 
 **Local Dependencies**: Run `./scripts/get_deps.sh` to download:
+
 - **transformers.js library**: Client-side ML inference engine
 - **DistilBERT model files**: Zero-shot classification model (~50MB)
 - **Worker bundle**: Bundled JavaScript for Web Worker compatibility
 
 **When to re-run the script**:
+
 - First time project setup
 - After updating transformers.js version
 - If ML models become corrupted
 - When `worker.js` is modified
 
 **Script features**:
+
 - Smart caching (skips existing files)
-- Progress indicators and error handling  
+- Progress indicators and error handling
 - `--force` flag to re-download everything
 - `--help` for usage information
 
 ### Development Guidelines
 
+- **TypeScript first**: Write all new code in TypeScript with proper type annotations
+- **Type safety**: Run `deno task check` before committing to verify types
 - **Test ML thoroughly**: Clear browser cache if CDN URLs change
-- **Focus on client-side**: Don't add server-side ML endpoints  
+- **Focus on client-side**: Don't add server-side ML endpoints
 - **Maintain fallbacks**: Heuristics should handle 95% of queries effectively
 - **Cache busting**: Use URL parameters (`?v=X`) when changing CDN imports
 - **Follow llm-shared conventions**: This project uses the shared development guidelines in `llm-shared/`
-- **No build system needed**: Project runs directly with `deno task dev` - no compilation step
+- **No build system needed**: Project runs directly with `deno task dev` - TypeScript transpiled on-demand
 - **Branch workflow**: Never commit directly to main - use feature branches and PRs
-- **Module structure**: Keep JavaScript modular in `js/` directory, avoid large monolithic files
+- **Module structure**: Keep TypeScript modular in `js/` directory, avoid large monolithic files
 - **Dependency script**: Use `./scripts/get_deps.sh` for ML dependencies, not npm/package managers
+- **Type definitions**: Update `js/types.ts` when adding new data structures or interfaces

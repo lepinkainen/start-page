@@ -1,12 +1,20 @@
+import type {
+  Provider,
+  Settings,
+  MLModel,
+  AliasResult,
+  QueryType,
+  LabelType,
+  ProviderType,
+} from "./types.ts";
 import {
   SETTINGS,
   PROVIDERS,
   LABEL_TO_PROVIDER,
   LABEL_TO_TYPE,
-} from "./constants.js";
-import { byId, normalize, encodeQuery } from "./utils.js";
-import { initMLPipeline, LABELS } from "./ml.js";
-import { classifyWithWorker } from "./worker-client.js";
+} from "./constants.ts";
+import { byId, normalize, encodeQuery } from "./utils.ts";
+import { initMLPipeline, LABELS } from "./ml.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
   qEl.value = "";
@@ -19,16 +27,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-const qEl = byId("q");
-const chipsEl = byId("chips");
-const recEl = byId("rec");
-const mlEl = byId("ml");
-const newTabEl = byId("newtab");
-const goEl = byId("go");
+// Typed DOM elements
+const qEl = byId("q") as HTMLInputElement;
+const chipsEl = byId("chips") as HTMLElement;
+const recEl = byId("rec") as HTMLElement;
+const mlEl = byId("ml") as HTMLElement;
+const newTabEl = byId("newtab") as HTMLInputElement;
+const goEl = byId("go") as HTMLButtonElement;
 
 newTabEl.checked = SETTINGS.openInNewTab;
 
-let MODEL = {
+// Typed MODEL object
+const MODEL: MLModel = {
   enabled: true,
   ready: false,
   ctx: "",
@@ -39,18 +49,18 @@ let MODEL = {
   lastId: 0,
 };
 
-function findProviderByAlias(alias) {
+function findProviderByAlias(alias: string): Provider | undefined {
   const a = alias.toLowerCase();
   return PROVIDERS.find((p) =>
     (p.aliases || []).some((x) => x.toLowerCase() === a)
   );
 }
 
-function providerById(id) {
+function providerById(id: string): Provider | undefined {
   return PROVIDERS.find((p) => p.id === id);
 }
 
-function classifyQuery(q) {
+function classifyQuery(q: string): QueryType {
   const s = normalize(q);
   if (!s) return "unknown";
   if (s.startsWith("!")) return "alias";
@@ -70,7 +80,7 @@ function classifyQuery(q) {
   return "general";
 }
 
-function resolveAlias(q) {
+function resolveAlias(q: string): AliasResult | null {
   const first = q.trim().split(/\s+/)[0];
   const prov = findProviderByAlias(first);
   if (!prov) return null;
@@ -78,7 +88,7 @@ function resolveAlias(q) {
   return { prov, rest };
 }
 
-function shouldTrustModel() {
+function shouldTrustModel(): boolean {
   const scores = MODEL.scores;
   if (!scores) return false;
   const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -87,7 +97,7 @@ function shouldTrustModel() {
   return topS >= 0.6 && topS - nextS >= 0.15;
 }
 
-function recommendedProvider(q) {
+function recommendedProvider(q: string): string {
   const alias = resolveAlias(q);
   if (alias) return alias.prov.id;
 
@@ -109,13 +119,13 @@ function recommendedProvider(q) {
     MODEL.ctx === normalize(q) &&
     shouldTrustModel()
   ) {
-    const mapped = LABEL_TO_PROVIDER[MODEL.suggest];
+    const mapped = LABEL_TO_PROVIDER[MODEL.suggest as LabelType];
     if (mapped) id = mapped;
   }
   return id;
 }
 
-function makeUrl(provider, q) {
+function makeUrl(provider: Provider, q: string): string {
   let query = q;
   const alias = resolveAlias(q);
   if (alias) query = alias.rest;
@@ -124,17 +134,17 @@ function makeUrl(provider, q) {
   return tpl.replace("{q}", encodeQuery(query));
 }
 
-function openUrl(url) {
+function openUrl(url: string): void {
   if (SETTINGS.openInNewTab) window.open(url, "_blank", "noopener");
   else window.location.href = url;
 }
 
-function renderChips(query) {
+function renderChips(query: string): void {
   chipsEl.innerHTML = "";
   const recId = recommendedProvider(query);
   recEl.textContent = recId ? `Recommended: ${providerById(recId)?.name}` : "";
   if (MODEL.suggest && MODEL.ctx === normalize(query)) {
-    const mapped = LABEL_TO_PROVIDER[MODEL.suggest];
+    const mapped = LABEL_TO_PROVIDER[MODEL.suggest as LabelType];
     const trust = shouldTrustModel();
     mlEl.textContent = `AI: ${MODEL.suggest}${
       MODEL.scores ? " " + scorePct(MODEL.suggest, MODEL.scores) : ""
@@ -146,14 +156,14 @@ function renderChips(query) {
     chip.className = "chip";
     chip.setAttribute("type", "button");
     chip.dataset.id = p.id;
-    chip.dataset.pinned = SETTINGS.pinned.includes(p.id);
+    chip.dataset.pinned = String(SETTINGS.pinned.includes(p.id));
     chip.innerHTML = `
       <span class="pin" title="Pin/unpin"></span>
       <strong>${p.name}</strong>
       <span class="kbd">${i < 10 ? `Alt+${i}` : ""}</span>
     `;
     chip.onclick = (ev) => {
-      if (ev.target.classList.contains("pin")) {
+      if ((ev.target as HTMLElement).classList.contains("pin")) {
         togglePin(p.id);
         ev.stopPropagation();
         return;
@@ -172,24 +182,24 @@ function renderChips(query) {
   // Mark all chips that match the predicted type
   const selectedIds = new Set(selectedProvidersForQuery(query));
   chipsEl.querySelectorAll(".chip").forEach((ch) => {
-    const id = ch.dataset.id;
-    if (selectedIds.has(id)) {
-      ch.dataset.selected = "true";
+    const id = (ch as HTMLElement).dataset.id;
+    if (id && selectedIds.has(id)) {
+      (ch as HTMLElement).dataset.selected = "true";
     }
   });
   // Also emphasize the single recommended one
-  const recChip = chipsEl.querySelector(`.chip[data-id="${recId}"]`);
+  const recChip = chipsEl.querySelector(`.chip[data-id="${recId}"]`) as HTMLElement;
   if (recChip) recChip.dataset.selected = "true";
   applyPinnedState();
 }
 
-function scorePct(label, scores) {
+function scorePct(label: string, scores: Record<string, number>): string {
   const v = scores[label];
   if (typeof v !== "number") return "";
   return `(${Math.round(v * 100)}%)`;
 }
 
-function togglePin(id) {
+function togglePin(id: string): void {
   const idx = SETTINGS.pinned.indexOf(id);
   if (idx === -1) SETTINGS.pinned.push(id);
   else SETTINGS.pinned.splice(idx, 1);
@@ -197,36 +207,39 @@ function togglePin(id) {
   applyPinnedState();
 }
 
-function applyPinnedState() {
+function applyPinnedState(): void {
   chipsEl.querySelectorAll(".chip").forEach((ch) => {
-    ch.dataset.pinned = SETTINGS.pinned.includes(ch.dataset.id);
+    const element = ch as HTMLElement;
+    if (element.dataset.id) {
+      element.dataset.pinned = String(SETTINGS.pinned.includes(element.dataset.id));
+    }
   });
 }
 
-function selectedProvidersForQuery(q) {
+function selectedProvidersForQuery(q: string): string[] {
   const t = predictedType(q);
   if (t === "general" || t === "alias") return [];
   return PROVIDERS.filter(
-    (p) => Array.isArray(p.types) && p.types.includes(t)
+    (p) => Array.isArray(p.types) && p.types.includes(t as ProviderType)
   ).map((p) => p.id);
 }
 
-function predictedType(q) {
+function predictedType(q: string): string {
   if (MODEL.suggest && MODEL.ctx === normalize(q)) {
-    return LABEL_TO_TYPE[MODEL.suggest] || "general";
+    return LABEL_TO_TYPE[MODEL.suggest as LabelType] || "general";
   }
   const h = classifyQuery(q);
   if (h === "tv" || h === "movie" || h === "game") return h;
   return "general";
 }
 
-async function startClassification(q) {
+async function startClassification(q: string): Promise<void> {
   const id = Math.random().toString(36).slice(2);
   MODEL.inFlight = id;
   MODEL.ctx = normalize(q);
 
   try {
-    byId("ml").textContent = "ML classifying...";
+    mlEl.textContent = "ML classifying...";
     const pipeline = await initMLPipeline();
 
     if (!pipeline) {
@@ -237,10 +250,10 @@ async function startClassification(q) {
 
     let result;
     try {
-      result = await pipeline(q, LABELS);
+      result = await pipeline(q, LABELS as any);
     } catch (e) {
       console.error("Pipeline classification error:", e);
-      byId("ml").textContent = "ML error";
+      mlEl.textContent = "ML error";
       return;
     }
 
@@ -250,8 +263,8 @@ async function startClassification(q) {
     if (normalize(qEl.value) !== MODEL.ctx) return;
 
     // Process results as usual...
-    const scores = {};
-    result.scores.forEach((score, idx) => {
+    const scores: Record<string, number> = {};
+    result.scores.forEach((score: number, idx: number) => {
       scores[result.labels[idx]] = score;
     });
 
@@ -259,23 +272,23 @@ async function startClassification(q) {
     MODEL.scores = scores;
     MODEL.runtime = Math.round(endTime - startTime);
 
-    byId("ml").textContent = `AI: ${MODEL.suggest} (${Math.round(
+    mlEl.textContent = `AI: ${MODEL.suggest} (${Math.round(
       scores[MODEL.suggest] * 100
     )}%) (${MODEL.runtime}ms)`;
     renderChips(qEl.value);
   } catch (error) {
     console.error("startClassification error:", error);
-    byId("ml").textContent = "ML error";
+    mlEl.textContent = "ML error";
   }
 }
 
-function openRecommended() {
+function openRecommended(): void {
   const recId = recommendedProvider(qEl.value);
   const prov = providerById(recId) || providerById("kagi");
-  openUrl(makeUrl(prov, qEl.value));
+  if (prov) openUrl(makeUrl(prov, qEl.value));
 }
 
-function openPinned() {
+function openPinned(): void {
   const list = SETTINGS.pinned.length
     ? SETTINGS.pinned
     : [recommendedProvider(qEl.value)];

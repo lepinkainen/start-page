@@ -1,11 +1,13 @@
-export const SETTINGS = {
+import type { Provider, Settings, LabelType, ProviderType } from "./types.ts";
+
+export const SETTINGS: Settings = {
   region: localStorage.getItem("region") || "US",
   openInNewTab: JSON.parse(localStorage.getItem("openInNewTab") ?? "true"),
   pinned: JSON.parse(localStorage.getItem("pinnedProviders") || "[]"),
   defaultProvider: localStorage.getItem("defaultProvider") || null,
 };
 
-export const PROVIDERS = [
+export const PROVIDERS: Provider[] = [
   {
     id: "imdb",
     name: "IMDb",
@@ -114,8 +116,9 @@ export const PROVIDERS = [
   },
 ];
 
-export const LABELS = ["movie", "tv show", "video game", "general"];
-export const LABEL_TO_PROVIDER = {
+export const LABELS = ["movie", "tv show", "video game", "general"] as const;
+
+export const LABEL_TO_PROVIDER: Record<LabelType, string> = {
   movie: "letterboxd",
   "tv show": "imdb",
   "video game": "opencritic",
@@ -123,7 +126,7 @@ export const LABEL_TO_PROVIDER = {
 };
 
 // Map model labels to provider type keys
-export const LABEL_TO_TYPE = {
+export const LABEL_TO_TYPE: Record<LabelType, ProviderType> = {
   movie: "movie",
   "tv show": "tv",
   "video game": "game",
