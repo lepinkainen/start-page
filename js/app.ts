@@ -53,6 +53,8 @@ const MODEL: MLModel = {
   lastId: 0,
 };
 
+let classifyTimer: number | null = null;
+
 function findProviderByAlias(alias: string): Provider | undefined {
   const a = alias.toLowerCase();
   return PROVIDERS.find((p) =>
@@ -291,13 +293,15 @@ function openPinned(): void {
 qEl.addEventListener("input", () => {
   const val = qEl.value;
   renderChips(val);
-  if (val && !resolveAlias(val)) {
-    if (MODEL.enabled) startClassification(val);
-  } else {
-    mlEl.textContent = "";
-    MODEL.suggest = null;
-    MODEL.scores = null;
+  if (!val || resolveAlias(val)) { 
+    mlEl.textContent = ""; 
+    MODEL.suggest = null; 
+    MODEL.scores = null; 
+    return; 
   }
+  if (!MODEL.enabled) return;
+  if (classifyTimer) clearTimeout(classifyTimer);
+  classifyTimer = setTimeout(() => startClassification(val), 150) as unknown as number;
 });
 
 qEl.addEventListener("keydown", (ev) => {
