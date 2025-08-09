@@ -1,9 +1,12 @@
+// Import generated types from categories
+import type { ProviderType } from "./categories.ts";
+
 // Core application types
 export interface Provider {
   id: string;
   name: string;
   url: string | (() => string);
-  types: ("movie" | "tv" | "game" | "general" | "code")[];
+  types: ProviderType[];
   aliases: string[];
 }
 
@@ -56,8 +59,5 @@ export type QueryType =
   | "game"
   | "general";
 
-// ML label types
-export type LabelType = "movie" | "tv show" | "video game" | "general";
-
-// Provider type filter
-export type ProviderType = "movie" | "tv" | "game" | "general" | "code";
+// Import generated types from categories
+export type { LabelType, ProviderType } from "./categories.ts";

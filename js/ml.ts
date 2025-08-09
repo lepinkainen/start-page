@@ -1,6 +1,8 @@
 import type { MLPipeline, ClassificationResult } from "./types.ts";
+import { LABELS } from "./categories.ts";
 
-export const LABELS = ["movie", "tv show", "video game", "general"] as const;
+// Re-export for backward compatibility
+export { LABELS } from "./categories.ts";
 
 // Import the worker client (will be transpiled by server)
 // @ts-ignore - worker-client.js is a JavaScript file

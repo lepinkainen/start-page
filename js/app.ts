@@ -14,7 +14,8 @@ import {
   LABEL_TO_TYPE,
 } from "./constants.ts";
 import { byId, normalize, encodeQuery } from "./utils.ts";
-import { initMLPipeline, LABELS } from "./ml.ts";
+import { initMLPipeline } from "./ml.ts";
+import { LABELS } from "./categories.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
   qEl.value = "";

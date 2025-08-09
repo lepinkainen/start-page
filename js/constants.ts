@@ -1,4 +1,6 @@
-import type { Provider, Settings, LabelType, ProviderType } from "./types.ts";
+import type { Provider, Settings } from "./types.ts";
+import { LABEL_TO_PROVIDER, LABEL_TO_TYPE } from "./categories.ts";
+import type { LabelType, ProviderType } from "./categories.ts";
 
 export const SETTINGS: Settings = {
   region: localStorage.getItem("region") || "US",
@@ -116,19 +118,5 @@ export const PROVIDERS: Provider[] = [
   },
 ];
 
-export const LABELS = ["movie", "tv show", "video game", "general"] as const;
-
-export const LABEL_TO_PROVIDER: Record<LabelType, string> = {
-  movie: "letterboxd",
-  "tv show": "imdb",
-  "video game": "opencritic",
-  general: "kagi",
-};
-
-// Map model labels to provider type keys
-export const LABEL_TO_TYPE: Record<LabelType, ProviderType> = {
-  movie: "movie",
-  "tv show": "tv",
-  "video game": "game",
-  general: "general",
-};
+// Re-export from categories.ts for backward compatibility
+export { LABEL_TO_PROVIDER, LABEL_TO_TYPE } from "./categories.ts";
