@@ -3,19 +3,22 @@ import type {
   Settings,
   MLModel,
   AliasResult,
-  QueryType,
   LabelType,
   ProviderType,
 } from "./types.ts";
 import {
   SETTINGS,
   PROVIDERS,
-  LABEL_TO_PROVIDER,
-  LABEL_TO_TYPE,
 } from "./constants.ts";
 import { byId, normalize, encodeQuery } from "./utils.ts";
 import { initMLPipeline } from "./ml.ts";
-import { LABELS } from "./categories.ts";
+import { 
+  LABELS, 
+  LABEL_TO_PROVIDER, 
+  LABEL_TO_TYPE, 
+  CATEGORIES,
+  classifyByHeuristics 
+} from "./categories.ts";
 
 document.addEventListener("DOMContentLoaded", () => {
   qEl.value = "";
@@ -61,25 +64,6 @@ function providerById(id: string): Provider | undefined {
   return PROVIDERS.find((p) => p.id === id);
 }
 
-function classifyQuery(q: string): QueryType {
-  const s = normalize(q);
-  if (!s) return "unknown";
-  if (s.startsWith("!")) return "alias";
-  if (
-    /\b(tv|tv[-\s]?show|series|mini[-\s]?series|s\d{1,2}e\d{1,2}|season|episode|ep\s*\d{1,3})\b/i.test(
-      s
-    )
-  )
-    return "tv";
-  if (/\b\d{4}\b/.test(s)) return "movie";
-  if (
-    /\b(ps5|ps4|xbox|xb1|xbxs|series\s?[xs]|switch|nintendo|playstation|opencritic|metacritic|dlc)\b/i.test(
-      s
-    )
-  )
-    return "game";
-  return "general";
-}
 
 function resolveAlias(q: string): AliasResult | null {
   const first = q.trim().split(/\s+/)[0];
@@ -102,18 +86,19 @@ function recommendedProvider(q: string): string {
   const alias = resolveAlias(q);
   if (alias) return alias.prov.id;
 
-  const cls = classifyQuery(q);
-  let id =
-    SETTINGS.defaultProvider && cls === "unknown"
-      ? SETTINGS.defaultProvider
-      : cls === "tv"
-      ? "imdb"
-      : cls === "movie"
-      ? "letterboxd"
-      : cls === "game"
-      ? "opencritic"
-      : SETTINGS.defaultProvider || "kagi";
+  // Try heuristic classification first
+  const heuristicType = classifyByHeuristics(q);
+  let id = SETTINGS.defaultProvider || "kagi";
+  
+  if (heuristicType) {
+    // Find the category with matching providerType and use its default provider
+    const category = Object.values(CATEGORIES).find(c => c.providerType === heuristicType);
+    if (category) {
+      id = category.defaultProvider;
+    }
+  }
 
+  // Override with ML suggestion if available and trusted
   if (
     MODEL.enabled &&
     MODEL.suggest &&
@@ -233,9 +218,8 @@ function predictedType(q: string): string {
   if (MODEL.suggest && MODEL.ctx === normalize(q)) {
     return LABEL_TO_TYPE[MODEL.suggest as LabelType] || "general";
   }
-  const h = classifyQuery(q);
-  if (h === "tv" || h === "movie" || h === "game") return h;
-  return "general";
+  const heuristicType = classifyByHeuristics(q);
+  return heuristicType || "general";
 }
 
 async function startClassification(q: string): Promise<void> {

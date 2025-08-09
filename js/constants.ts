@@ -1,6 +1,4 @@
 import type { Provider, Settings } from "./types.ts";
-import { LABEL_TO_PROVIDER, LABEL_TO_TYPE } from "./categories.ts";
-import type { LabelType, ProviderType } from "./categories.ts";
 
 export const SETTINGS: Settings = {
   region: localStorage.getItem("region") || "US",
@@ -173,5 +171,3 @@ export const PROVIDERS: Provider[] = [
   },
 ];
 
-// Re-export from categories.ts for backward compatibility
-export { LABEL_TO_PROVIDER, LABEL_TO_TYPE } from "./categories.ts";
