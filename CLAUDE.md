@@ -40,6 +40,16 @@ A Deno-based web application that intelligently routes search queries to appropr
 
 ## Development Workflow
 
+### Initial Setup
+
+```bash
+# Download ML dependencies and bundle worker (first time only)
+./scripts/get_deps.sh
+
+# Or force re-download everything
+./scripts/get_deps.sh --force
+```
+
 ### Running the Application
 
 ```bash
@@ -67,8 +77,10 @@ deno task start
 ├── style.css           # CSS with theme variables
 ├── deno.json           # Deno tasks: dev (watch), start
 ├── compose.yml         # Docker Compose configuration
+├── scripts/            # Build and setup scripts
+│   └── get_deps.sh     # Download ML dependencies and bundle worker
 ├── llm-shared/         # Shared development guidelines (git submodule)
-├── models/             # Local ML model cache (optional)
+├── models/             # Local ML model cache (downloaded by script)
 └── node_modules/       # Auto-managed Deno npm cache
 ```
 
@@ -161,6 +173,25 @@ Providers defined in `PROVIDERS` array in `js/constants.js`:
 - **Client-side only**: Server does zero ML processing, just serves static files
 - **Vanilla JS**: No frameworks keeps bundle small and loading fast
 
+### Dependency Management
+
+**Local Dependencies**: Run `./scripts/get_deps.sh` to download:
+- **transformers.js library**: Client-side ML inference engine
+- **DistilBERT model files**: Zero-shot classification model (~50MB)
+- **Worker bundle**: Bundled JavaScript for Web Worker compatibility
+
+**When to re-run the script**:
+- First time project setup
+- After updating transformers.js version
+- If ML models become corrupted
+- When `worker.js` is modified
+
+**Script features**:
+- Smart caching (skips existing files)
+- Progress indicators and error handling  
+- `--force` flag to re-download everything
+- `--help` for usage information
+
 ### Development Guidelines
 
 - **Test ML thoroughly**: Clear browser cache if CDN URLs change
@@ -171,3 +202,4 @@ Providers defined in `PROVIDERS` array in `js/constants.js`:
 - **No build system needed**: Project runs directly with `deno task dev` - no compilation step
 - **Branch workflow**: Never commit directly to main - use feature branches and PRs
 - **Module structure**: Keep JavaScript modular in `js/` directory, avoid large monolithic files
+- **Dependency script**: Use `./scripts/get_deps.sh` for ML dependencies, not npm/package managers

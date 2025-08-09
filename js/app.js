@@ -8,6 +8,17 @@ import { byId, normalize, encodeQuery } from "./utils.js";
 import { initMLPipeline, LABELS } from "./ml.js";
 import { classifyWithWorker } from "./worker-client.js";
 
+document.addEventListener("DOMContentLoaded", () => {
+  qEl.value = "";
+  renderChips(qEl.value);
+  qEl.focus();
+
+  // Initialize ML pipeline immediately on page load
+  initMLPipeline().then(() => {
+    console.log("ML pipeline preloaded and ready");
+  });
+});
+
 const qEl = byId("q");
 const chipsEl = byId("chips");
 const recEl = byId("rec");

@@ -1,1 +1,8 @@
+# Deno dependencies
 node_modules/
+
+# Downloaded ML dependencies (optional to track)
+transformers.min.js
+transformers.min.js.map
+models/
+worker.bundle.js

@@ -2,6 +2,8 @@
     "nodeModulesDir": "auto",
     "tasks": {
         "dev": "deno run -A --watch server.ts",
-        "start": "deno run -A server.ts"
+        "start": "deno run -A server.ts",
+        "deps": "./scripts/get_deps.sh",
+        "deps-force": "./scripts/get_deps.sh --force"
     }
 }
