@@ -34,6 +34,30 @@ export const CATEGORIES = {
     heuristicPatterns:
       /\b(ps5|ps4|xbox|xb1|xbxs|series\s?[xs]|switch|nintendo|playstation|opencritic|metacritic|dlc)\b/i,
   },
+  book: {
+    label: "book",
+    defaultProvider: "goodreads",
+    providerType: "book",
+    heuristicPatterns: /\b(book|author|novel|goodreads)\b/i,
+  },
+  music: {
+    label: "music",
+    defaultProvider: "spotify",
+    providerType: "music",
+    heuristicPatterns: /\b(music|album|artist|song|spotify|bandcamp)\b/i,
+  },
+  podcast: {
+    label: "podcast",
+    defaultProvider: "applepodcasts",
+    providerType: "podcast",
+    heuristicPatterns: /\b(podcast|episode|castbox|overcast)\b/i,
+  },
+  boardgame: {
+    label: "board game",
+    defaultProvider: "boardgamegeek",
+    providerType: "boardgame",
+    heuristicPatterns: /\b(boardgame|bgg|tabletop)\b/i,
+  },
   general: {
     label: "general",
     defaultProvider: "kagi",

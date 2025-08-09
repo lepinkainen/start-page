@@ -8,6 +8,7 @@ export interface Provider {
   url: string | (() => string);
   types: ProviderType[];
   aliases: string[];
+  icon?: string;
 }
 
 export interface Settings {

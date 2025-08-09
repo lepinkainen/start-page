@@ -116,6 +116,41 @@ export const PROVIDERS: Provider[] = [
     types: ["code"],
     aliases: ["!so"],
   },
+  {
+    id: "myanimelist",
+    name: "MyAnimeList",
+    url: "https://myanimelist.net/anime.php?q={q}",
+    types: ["anime"],
+    aliases: ["!mal"],
+  },
+  {
+    id: "goodreads",
+    name: "Goodreads",
+    url: "https://www.goodreads.com/search?q={q}",
+    types: ["book"],
+    aliases: ["!gr"],
+  },
+  {
+    id: "spotify",
+    name: "Spotify",
+    url: "http://open.spotify.com/search/{q}",
+    types: ["music"],
+    aliases: ["!sp"],
+  },
+  {
+    id: "applepodcasts",
+    name: "Apple Podcasts",
+    url: "https://itunes.apple.com/search?term={q}&entity=podcast",
+    types: ["podcast"],
+    aliases: ["!ap"],
+  },
+  {
+    id: "boardgamegeek",
+    name: "BoardGameGeek",
+    url: "https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q={q}",
+    types: ["boardgame"],
+    aliases: ["!bgg"],
+  },
 ];
 
 // Re-export from categories.ts for backward compatibility
